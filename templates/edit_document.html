@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Document - Concurrency System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body data-page="edit-document">
+    <div class="container">
+        <h1>Edit ProductSpecification.txt</h1>
+
+        <form method="POST">
+            <textarea name="content" rows="20" style="width: 100%;">{{ content }}</textarea>
+            <br><br>
+            <button type="submit">Save Changes</button>
+        </form>
+
+        <div class="actions">
+            <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+</body>
+</html>

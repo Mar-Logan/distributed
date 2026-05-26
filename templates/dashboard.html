@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Concurrency System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body data-page="dashboard">
+    <div class="container">
+        <h1>System Dashboard</h1>
+
+        <p><strong>Logged in as:</strong> {{ current_user }}</p>
+        <p><strong>Login result:</strong> Active</p>
+
+        <div class="panel">
+            <h2>Active Users</h2>
+            <ul id="active-users-list">
+                {% for user in active_users %}
+                    <li>{{ user }}</li>
+                {% endfor %}
+            </ul>
+            <p id="active-users-empty" {% if active_users %}style="display:none;"{% endif %}>No active users.</p>
+        </div>
+
+        <div class="panel">
+            <h2>Waiting Users</h2>
+            <ul id="waiting-users-list">
+                {% for user in waiting_users %}
+                    <li>{{ user }}</li>
+                {% endfor %}
+            </ul>
+            <p id="waiting-users-empty" {% if waiting_users %}style="display:none;"{% endif %}>No waiting users.</p>
+        </div>
+
+        <div class="panel">
+            <h2>Shared File Status</h2>
+            <p><strong>Status:</strong> <span id="file-status">{{ file_status }}</span></p>
+
+            <p><strong>Readers:</strong></p>
+            <ul id="active-readers-list">
+                {% for user in active_readers %}
+                    <li>{{ user }}</li>
+                {% endfor %}
+            </ul>
+            <p id="active-readers-empty" {% if active_readers %}style="display:none;"{% endif %}>No users currently reading.</p>
+
+            <p><strong>Writer:</strong></p>
+            <ul id="active-writer-list">
+                {% if active_writer %}
+                    <li>{{ active_writer }}</li>
+                {% endif %}
+            </ul>
+            <p id="active-writer-empty" {% if active_writer %}style="display:none;"{% endif %}>No user currently writing.</p>
+        </div>
+
+        <div class="actions">
+            <a href="{{ url_for('document') }}">Read Document</a>
+            <a href="{{ url_for('edit_document') }}">Edit Document</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+</body>
+</html>

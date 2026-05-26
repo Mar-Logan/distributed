@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting Queue - ConRes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body data-page="waiting">
+    <div class="container">
+        <h1>Waiting for a Free Slot</h1>
+
+        <p><strong>User:</strong> {{ current_user }}</p>
+        <p>You are currently in the waiting queue because the maximum number of active users has been reached.</p>
+
+        <div class="panel">
+            <h2>Queue Status</h2>
+            <p id="queue-status-text">Checking queue status...</p>
+        </div>
+
+        <div class="actions">
+            <a href="{{ url_for('logout') }}">Leave Queue / Logout</a>
+        </div>
+    </div>
+</body>
+</html>
