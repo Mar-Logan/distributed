@@ -10,13 +10,6 @@ from server.router import RequestRouter
 class DistResServer:
     """
     Main TCP server for DistRes.
-
-    Responsibilities:
-    - Create the server socket
-    - Bind to an IP address and port
-    - Listen for incoming clients
-    - Accept connections
-    - Start one thread per client
     """
 
     def __init__(self, host: str = "127.0.0.1", port: int = 9000):
@@ -36,7 +29,7 @@ class DistResServer:
         )
 
         self.connection_manager = ConnectionManager()
-        self.router = RequestRouter()
+        self.router = RequestRouter(self.connection_manager)
         self.running = False
 
     def start(self) -> None:
@@ -87,6 +80,10 @@ class DistResServer:
         except KeyboardInterrupt:
             self.logger.info("Keyboard interrupt received")
 
+        except OSError as error:
+            if self.running:
+                self.logger.error(f"Server socket error: {error}")
+
         finally:
             self.stop()
 
@@ -95,6 +92,7 @@ class DistResServer:
         Stops the server.
         """
 
+        was_running = self.running
         self.running = False
 
         try:
@@ -102,4 +100,5 @@ class DistResServer:
         except Exception:
             pass
 
-        self.logger.info("DistRes server stopped")
+        if was_running:
+            self.logger.info("DistRes server stopped")

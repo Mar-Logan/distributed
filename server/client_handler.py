@@ -1,6 +1,6 @@
 import socket
 from shared.logger import setup_logger
-from shared.protocol import receive_message, send_message, create_message
+from shared.protocol import receive_message, create_message
 from server.router import RequestRouter
 from server.connection_manager import ConnectionManager
 
@@ -25,7 +25,10 @@ class ClientHandler:
         self.connection_manager = connection_manager
         self.router = router
         self.logger = setup_logger("ClientHandler")
-        self.client_id = self.connection_manager.register_client(client_address)
+        self.client_id = self.connection_manager.register_client(
+            client_socket,
+            client_address
+        )
         self.running = True
 
     def run(self) -> None:
@@ -44,8 +47,8 @@ class ClientHandler:
             f"Client {self.client_id} connected from {self.client_address}"
         )
 
-        send_message(
-            self.client_socket,
+        self.connection_manager.send_to_client(
+            self.client_id,
             create_message(
                 "connection_ack",
                 {
@@ -76,7 +79,10 @@ class ClientHandler:
 
                     response = self.router.route(self.client_id, message)
 
-                    send_message(self.client_socket, response)
+                    self.connection_manager.send_to_client(
+                        self.client_id,
+                        response
+                    )
 
                     self.logger.debug(
                         f"Sent to client {self.client_id}: {response}"
@@ -93,8 +99,8 @@ class ClientHandler:
             )
 
             try:
-                send_message(
-                    self.client_socket,
+                self.connection_manager.send_to_client(
+                    self.client_id,
                     create_message(
                         "error",
                         {
@@ -112,11 +118,10 @@ class ClientHandler:
         """
         Cleans up after a client disconnects.
 
-        This is important because distributed systems must not keep stale
-        clients in the server state.
         """
 
         self.running = False
+        self.router.cleanup_client(self.client_id)
         self.connection_manager.remove_client(self.client_id)
 
         try:

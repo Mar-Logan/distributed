@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Concurrency System</title>
+    <title>Dashboard - DistRes</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
@@ -12,7 +12,13 @@
         <h1>System Dashboard</h1>
 
         <p><strong>Logged in as:</strong> {{ current_user }}</p>
-        <p><strong>Login result:</strong> Active</p>
+        <p><strong>Login result:</strong> {{ login_status }}</p>
+
+        <div id="notification-panel" class="notice" style="display:none;"></div>
+
+        {% if message %}
+            <p class="notice">{{ message }}</p>
+        {% endif %}
 
         <div class="panel">
             <h2>Active Users</h2>
@@ -53,6 +59,14 @@
                 {% endif %}
             </ul>
             <p id="active-writer-empty" {% if active_writer %}style="display:none;"{% endif %}>No user currently writing.</p>
+
+            <p><strong>File Queue:</strong></p>
+            <ul id="file-queue-list">
+                {% for item in file_queue %}
+                    <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+            <p id="file-queue-empty" {% if file_queue %}style="display:none;"{% endif %}>No queued file requests.</p>
         </div>
 
         <div class="actions">

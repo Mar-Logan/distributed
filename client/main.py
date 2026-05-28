@@ -27,7 +27,12 @@ def main():
 
     proxy = ServerProxy(client)
 
-    cli = ClientCLI(proxy, receive_handler)
+    cli = ClientCLI(
+        proxy,
+        receive_handler,
+        client=client,
+        retry_manager=retry_manager
+    )
 
     try:
 

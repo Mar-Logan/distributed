@@ -34,6 +34,7 @@ class DistResClient:
             self.socket.settimeout(5)
 
             self.socket.connect((self.host, self.port))
+            self.socket.settimeout(1)
 
             self.state = ConnectionState.CONNECTED
             self.running = True
@@ -50,45 +51,60 @@ class DistResClient:
     def send_request(self, request):
 
         try:
+            if self.socket is None or not self.running:
+                self.logger.warning("Cannot send request while disconnected")
+                return False
+
             with self.lock:
                 send_message(self.socket, request)
                 self.logger.debug(f"Sent request: {request}")
 
+            return True
+
         except Exception as error:
             self.logger.error(f"Send failed: {error}")
             self.disconnect()
+            return False
 
-    def receive_response(self):
+    def receive_messages(self):
 
         try:
+            if self.socket is None or not self.running:
+                return []
+
             data = self.socket.recv(4096)
 
             if not data:
                 self.logger.warning("Server closed the connection")
                 self.disconnect()
-                return None
+                return []
 
             messages, self.receive_buffer = receive_message(
                 self.receive_buffer,
                 data
             )
-            """
-            if messages:
-                response = messages[0]
-                self.logger.debug(f"Received response: {response}")
-                return response
-            """
 
-            return None
+            for message in messages:
+                self.logger.debug(f"Received response: {message}")
+
+            return messages
 
         except socket.timeout:
-            return None
+            return []
 
         except Exception as error:
             if self.running:
                 self.logger.error(f"Receive failed: {error}")
                 self.disconnect()
-            return None
+            return []
+
+    def receive_response(self):
+        """Compatibility helper that returns the first available message."""
+
+        messages = self.receive_messages()
+        if messages:
+            return messages[0]
+        return None
 
     def disconnect(self):
 

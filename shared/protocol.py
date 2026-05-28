@@ -6,19 +6,48 @@ from typing import Any, Dict, Optional
 Message = Dict[str, Any]
 
 
+MESSAGE_TYPES = {
+    "connection_ack",
+    "hello",
+    "hello_ack",
+    "ping",
+    "pong",
+    "server_status",
+    "server_status_response",
+    "login_request",
+    "login_response",
+    "logout_request",
+    "logout_response",
+    "read_file_request",
+    "read_file_response",
+    "write_file_request",
+    "write_file_response",
+    "write_file_commit",
+    "write_file_commit_response",
+    "leave_file_mode_request",
+    "leave_file_mode_response",
+    "system_state_request",
+    "system_state_response",
+    "subscribe_updates",
+    "unsubscribe_updates",
+    "resource_updated",
+    "file_access_granted",
+    "access_denied",
+    "queued",
+    "error",
+}
+
+
 def create_message(message_type: str, payload: Optional[dict] = None) -> Message:
     """
     Creates a standard DistRes message.
 
-    Every message in the system follows the same structure:
+    Every message structure:
 
     {
         "type": "message_type",
         "payload": {...}
     }
-
-    This makes routing easier because the server can inspect the 'type'
-    field and decide what action to perform.
     """
 
     return {
@@ -32,10 +61,7 @@ def encode_message(message: Message) -> bytes:
     Converts a Python dictionary into newline-delimited JSON bytes.
 
     TCP sockets send bytes, not Python dictionaries.
-    message must be:
-    1. Converted to JSON text
-    2. Given a newline delimiter
-    3. Encoded into bytes
+    message must be: Converted to JSON text, Given a newline delimiter, Encoded into bytes
     """
 
     json_text = json.dumps(message)
@@ -56,10 +82,6 @@ def decode_message(raw_message: str) -> Message:
 def send_message(sock: socket.socket, message: Message) -> None:
     """
     Sends one complete JSON message through a socket.
-
-    sendall() is used instead of send() because send() may only transmit
-    part of the data. sendall() keeps sending until the full message has
-    been passed to the operating system.
     """
 
     data = encode_message(message)
@@ -69,14 +91,6 @@ def send_message(sock: socket.socket, message: Message) -> None:
 def receive_message(buffer: str, data: bytes) -> tuple[list[Message], str]:
     """
     Processes incoming TCP data and extracts complete JSON messages.
-
-    Because TCP is a stream, it may receive:
-    - half a message
-    - exactly one message
-    - multiple messages together
-
-    This function keeps an unfinished buffer and only returns complete
-    newline-delimited JSON messages.
     """
 
     buffer += data.decode("utf-8")

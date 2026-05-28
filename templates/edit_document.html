@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Document - Concurrency System</title>
+    <title>Edit Document - DistRes</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
@@ -11,7 +11,7 @@
     <div class="container">
         <h1>Edit ProductSpecification.txt</h1>
 
-        <form method="POST">
+        <form method="POST" id="edit-document-form">
             <textarea name="content" rows="20" style="width: 100%;">{{ content }}</textarea>
             <br><br>
             <button type="submit">Save Changes</button>

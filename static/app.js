@@ -1,12 +1,10 @@
 /*
-Frontend polling and UI update logic for the concurrency system.
+Frontend polling for the DistRes web client.
 
-Handles live updates for the waiting queue, dashboard state,
-file access waiting messages, and file-mode cleanup when leaving pages.
+The browser talks to Flask over HTTP. Flask talks to the DistRes TCP server.
 */
 
 function updateList(listElementId, emptyElementId, items) {
-    // Rebuilds a list element from live data and toggles its empty message.
     const list = document.getElementById(listElementId);
     const empty = document.getElementById(emptyElementId);
 
@@ -14,7 +12,7 @@ function updateList(listElementId, emptyElementId, items) {
 
     list.innerHTML = "";
 
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
         empty.style.display = "block";
         return;
     }
@@ -28,8 +26,35 @@ function updateList(listElementId, emptyElementId, items) {
     });
 }
 
+function updateSingleItemList(listElementId, emptyElementId, item) {
+    const list = document.getElementById(listElementId);
+    const empty = document.getElementById(emptyElementId);
+
+    if (!list || !empty) return;
+
+    list.innerHTML = "";
+
+    if (!item) {
+        empty.style.display = "block";
+        return;
+    }
+
+    empty.style.display = "none";
+
+    const li = document.createElement("li");
+    li.textContent = item;
+    list.appendChild(li);
+}
+
+function showNotification(message) {
+    const panel = document.getElementById("notification-panel");
+    if (!panel) return;
+
+    panel.textContent = message;
+    panel.style.display = "block";
+}
+
 function startWaitingPagePolling() {
-    // Polls the queue endpoint so waiting users can be promoted automatically.
     const statusText = document.getElementById("queue-status-text");
     if (!statusText) return;
 
@@ -53,6 +78,11 @@ function startWaitingPagePolling() {
                 return;
             }
 
+            if (data.status === "server_unavailable") {
+                statusText.textContent = "DistRes TCP server is unavailable.";
+                return;
+            }
+
             window.location.href = "/";
         } catch (error) {
             statusText.textContent = "Error checking queue status.";
@@ -61,7 +91,6 @@ function startWaitingPagePolling() {
 }
 
 function startDashboardPolling() {
-    // Refreshes all live system state shown on the dashboard.
     setInterval(async () => {
         try {
             const response = await fetch("/system-state");
@@ -83,6 +112,7 @@ function startDashboardPolling() {
             updateList("active-users-list", "active-users-empty", data.active_users || []);
             updateList("waiting-users-list", "waiting-users-empty", data.waiting_users || []);
             updateList("active-readers-list", "active-readers-empty", data.active_readers || []);
+            updateList("file-queue-list", "file-queue-empty", data.file_queue || []);
             updateSingleItemList("active-writer-list", "active-writer-empty", data.active_writer || null);
 
             const fileStatus = document.getElementById("file-status");
@@ -95,56 +125,73 @@ function startDashboardPolling() {
     }, 2000);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    const pageType = document.body.dataset.page;
+function startNotificationPolling() {
+    setInterval(async () => {
+        try {
+            const response = await fetch("/notifications");
+            const data = await response.json();
 
-    if (pageType === "waiting") {
-        startWaitingPagePolling();
-    }
+            (data.notifications || []).forEach(notification => {
+                if (notification.type === "promotion") {
+                    window.location.href = "/dashboard";
+                    return;
+                }
 
-    if (pageType === "dashboard") {
-        startDashboardPolling();
-    }
-});
+                if (notification.type === "resource_updated") {
+                    const updatedBy = notification.updated_by || "another user";
+                    showNotification(`${notification.message} Updated by ${updatedBy}.`);
+                }
 
-function updateSingleItemList(listElementId, emptyElementId, item) {
-    const list = document.getElementById(listElementId);
-    const empty = document.getElementById(emptyElementId);
+                if (notification.type === "file_access_granted") {
+                    if (notification.mode === "write") {
+                        showNotification("Write access granted. Opening editor...");
+                        window.location.href = "/edit-document";
+                        return;
+                    }
 
-    if (!list || !empty) return;
-
-    list.innerHTML = "";
-
-    if (!item) {
-        empty.style.display = "block";
-        return;
-    }
-
-    empty.style.display = "none";
-
-    const li = document.createElement("li");
-    li.textContent = item;
-    list.appendChild(li);
+                    if (notification.mode === "read") {
+                        showNotification("Read access granted. Opening document...");
+                        window.location.href = "/document";
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Notification refresh failed:", error);
+        }
+    }, 2000);
 }
 
 function leaveFileModeOnUnload() {
-    // Best-effort cleanup so read/write modes are released when leaving the page.
     navigator.sendBeacon("/leave-file-mode");
 }
 
+function setupFileModeCleanup(pageType) {
+    if (pageType !== "document" && pageType !== "edit-document") {
+        return;
+    }
+
+    window.addEventListener("beforeunload", leaveFileModeOnUnload);
+
+    const editForm = document.getElementById("edit-document-form");
+    if (editForm) {
+        editForm.addEventListener("submit", () => {
+            window.removeEventListener("beforeunload", leaveFileModeOnUnload);
+        });
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-    // Enable only the polling relevant to the current page.
     const pageType = document.body.dataset.page;
 
     if (pageType === "waiting") {
         startWaitingPagePolling();
+        startNotificationPolling();
     }
 
     if (pageType === "dashboard") {
         startDashboardPolling();
+        startNotificationPolling();
     }
 
-    if (pageType === "document" || pageType === "edit-document") {
-        window.addEventListener("beforeunload", leaveFileModeOnUnload);
-    }
+    setupFileModeCleanup(pageType);
 });

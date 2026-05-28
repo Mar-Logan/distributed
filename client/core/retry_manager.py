@@ -1,5 +1,7 @@
 import time
 
+from client.core.connection_state import ConnectionState
+
 
 class RetryManager:
 
@@ -20,3 +22,9 @@ class RetryManager:
             time.sleep(self.retry_delay)
 
         return False
+
+    def attempt_reconnection(self, client):
+        """Attempts to reconnect a disconnected client."""
+
+        client.state = ConnectionState.RECONNECTING
+        return self.attempt_connection(client)
